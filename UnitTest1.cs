@@ -10,11 +10,12 @@ namespace KPI3.BlackBoxTest
 		const string NON_EXISTENT_PATH_INVALID = "^$:/\\fd:\\fwe/wef\n\t\r\n";
 		const string NON_EXISTENT_PATH_NULL = null;
 		const string NON_EXISTENT_PATH_EMPTY = "";
+		const string NON_EXISTENT_PATH_BLANK = " ";
 		const string NON_EXISTENT_PATH_RELATIVE = "some-non-existing-file.dllx";
 		const string NON_EXISTENT_PATH_VALID = "C:\\Windows\\Another-non-existing-file.dllx";
 
 		const string TEMP_FILE_PATH = "_test_file.tmp";
-		const string TEMP_FILE_PATH_IN = "_test_file.tmp";
+		const string TEMP_FILE_PATH_IN = "_test_file_in.tmp";
 		const string TEMP_FILE_PATH_OUT = "_test_file_out.tmp";
 
 		string TOO_LONG_PATH = new string('a', 300); // must be too long to successfully create a file/dir
@@ -32,6 +33,7 @@ namespace KPI3.BlackBoxTest
 		[InlineData(NON_EXISTENT_PATH_INVALID)]
 		[InlineData(NON_EXISTENT_PATH_NULL)]
 		[InlineData(NON_EXISTENT_PATH_EMPTY)]
+		[InlineData(NON_EXISTENT_PATH_BLANK)]
 		[InlineData(NON_EXISTENT_PATH_RELATIVE)]
 		[InlineData(NON_EXISTENT_PATH_VALID)]
 		public void ReadFileName_ReturnsNull_NonExistFiles(string fileName)
@@ -129,6 +131,7 @@ namespace KPI3.BlackBoxTest
 		[InlineData("test")]
 		[InlineData("test2.txt")]
 		[InlineData(NON_EXISTENT_PATH_EMPTY)]
+		[InlineData(NON_EXISTENT_PATH_BLANK)]
 		[InlineData(NON_EXISTENT_PATH_NULL)]
 		[InlineData(NON_EXISTENT_PATH_INVALID)]
 		[InlineData(NON_EXISTENT_PATH_RELATIVE)]
@@ -186,6 +189,7 @@ namespace KPI3.BlackBoxTest
 		[Theory]
 		[InlineData(NON_EXISTENT_PATH_NULL)]
 		[InlineData(NON_EXISTENT_PATH_EMPTY)]
+		[InlineData(NON_EXISTENT_PATH_BLANK)]
 		[InlineData(NON_EXISTENT_PATH_INVALID)]
 		[InlineData(NON_EXISTENT_PATH_VALID)]
 		public void GetPath_ReturnsNull_NonExist_Files(string file)
@@ -253,6 +257,7 @@ namespace KPI3.BlackBoxTest
 		[InlineData(NON_EXISTENT_PATH_INVALID)]
 		[InlineData(NON_EXISTENT_PATH_NULL)]
 		[InlineData(NON_EXISTENT_PATH_EMPTY)]
+		[InlineData(NON_EXISTENT_PATH_BLANK)]
 		void MkDir_ReturnsNull_InvalidPath(string dirPath)
 		{
 			string result = "";
@@ -287,6 +292,7 @@ namespace KPI3.BlackBoxTest
 
 		[Theory]
 		[InlineData(NON_EXISTENT_PATH_EMPTY)]
+		[InlineData(NON_EXISTENT_PATH_BLANK)]
 		[InlineData(NON_EXISTENT_PATH_INVALID)]
 		[InlineData(NON_EXISTENT_PATH_NULL)]
 		[InlineData(NON_EXISTENT_PATH_RELATIVE)]
@@ -328,6 +334,7 @@ namespace KPI3.BlackBoxTest
 
 		[Theory]
 		[InlineData(NON_EXISTENT_PATH_EMPTY)]
+		[InlineData(NON_EXISTENT_PATH_BLANK)]
 		[InlineData(NON_EXISTENT_PATH_INVALID)]
 		[InlineData(NON_EXISTENT_PATH_NULL)]
 		[InlineData(NON_EXISTENT_PATH_RELATIVE)]
@@ -346,6 +353,7 @@ namespace KPI3.BlackBoxTest
 
 		[Theory]
 		[InlineData(NON_EXISTENT_PATH_EMPTY)]
+		[InlineData(NON_EXISTENT_PATH_BLANK)]
 		[InlineData(NON_EXISTENT_PATH_INVALID)]
 		[InlineData(NON_EXISTENT_PATH_NULL)]
 		[InlineData(NON_EXISTENT_PATH_RELATIVE)]
@@ -379,10 +387,10 @@ namespace KPI3.BlackBoxTest
 
 		[Theory]
 		[InlineData(NON_EXISTENT_PATH_EMPTY)]
+		[InlineData(NON_EXISTENT_PATH_BLANK)]
 		[InlineData(NON_EXISTENT_PATH_INVALID)]
 		[InlineData(NON_EXISTENT_PATH_NULL)]
-		[InlineData(NON_EXISTENT_PATH_EMPTY, 10)]
-		[InlineData(NON_EXISTENT_PATH_INVALID, 10)]
+		[InlineData(NON_EXISTENT_PATH_INVALID, 0)]
 		[InlineData(NON_EXISTENT_PATH_NULL, 10)]
 		void TryCopy_ReturnsFalse_To_NonExistentPath(string to, int maxTries = 1)
 		{
@@ -392,14 +400,8 @@ namespace KPI3.BlackBoxTest
 			Action<int?, bool> codeToTest = (int? x, bool overwrite) =>
 			{
 				bool result;
-				if (!x.HasValue)
-				{
-					result = BaseFileWorker.TryCopy(from, to, overwrite);
-				}
-				else
-				{
-					result = BaseFileWorker.TryCopy(from, to, overwrite, x.Value);
-				}
+				if (x.HasValue) result = BaseFileWorker.TryCopy(from, to, overwrite, x.Value);
+				else result = BaseFileWorker.TryCopy(from, to, overwrite);
 				Assert.False(result);
 				Assert.False(File.Exists(to));
 			};
@@ -420,10 +422,32 @@ namespace KPI3.BlackBoxTest
 			File.Delete(from);
 		}
 
+		[Theory]
+		[InlineData(-1)]
+		[InlineData(int.MinValue)]
+		[InlineData(0)]
+		void TryCopy_ReturnsFalse_NegativeTriesNumber(int tries)
+		{
+			string from = TEMP_FILE_PATH_IN;
+			string to = TEMP_FILE_PATH_OUT;
+			if (File.Exists(to)) File.Delete(to);
+			var data = InputHelper.GenerateData(100);
+			File.WriteAllText(from, data);//create or overwrite
+			Action codeToTest = () =>
+			{
+				bool result = BaseFileWorker.TryCopy(from, to, true, tries);
+				Assert.False(result);
+				Assert.False(File.Exists(to));
+			};
+			var ex = Record.Exception(codeToTest);
+			Assert.Null(ex);
+			File.Delete(from);
+		}
 
 		[Theory]
 		[InlineData(TEMP_FILE_PATH_OUT)]
-		void TryCopy_ReturnsTrue_SuccessfullCopy_NewFile(string to, Nullable<int> tries = null)
+		[InlineData(TEMP_FILE_PATH_OUT, 10)]
+		void TryCopy_ReturnsTrue_SuccessfullCopy_RewriteEnabled(string to, Nullable<int> tries = null)
 		{
 			string from = TEMP_FILE_PATH;
 			var data = InputHelper.GenerateData(100);
@@ -450,12 +474,119 @@ namespace KPI3.BlackBoxTest
 		}
 
 		[Fact]
+		void TryCopy_RewriteDisabled_ReturnsFalse_When_DestinationExists()
+		{
+			string from = TEMP_FILE_PATH_IN;
+			string to = TEMP_FILE_PATH_OUT;
+			string data = InputHelper.GenerateData(100);
+			string expected = "Hello world";
+			File.WriteAllText(from, data);
+			File.WriteAllText(to, expected);
+
+			var result = BaseFileWorker.TryCopy(from, to, false);
+			Assert.False(result);
+			Assert.Equal(expected, File.ReadAllText(to)); // file content should stay the same
+			File.Delete(from); File.Delete(to);
+		}
+
+		[Fact]
+		void TryCopy_RewriteEnabled_ReturnsTrue_When_DestinationExists()
+		{
+			string from = TEMP_FILE_PATH_IN;
+			string to = TEMP_FILE_PATH_OUT;
+			string data = InputHelper.GenerateData(100);
+			File.WriteAllText(from, data);
+			File.WriteAllText(to, "Hello world");
+			var result = BaseFileWorker.TryCopy(from, to, true);
+			Assert.True(result);
+			Assert.Equal(data, File.ReadAllText(to)); // text should have been overriden with data
+			File.Delete(from); File.Delete(to);
+		}
+
+		[Fact]
+		void TryWrite_ReturnsTrue_ToNewFile()//(string to, Nullable<int> tries = null)
+		{
+			string unusedFile = TEMP_FILE_PATH_OUT;
+			if (File.Exists(unusedFile)) File.Delete(unusedFile);
+			var data = InputHelper.GenerateData(100);
+
+			var result = BaseFileWorker.TryWrite(data, unusedFile);
+			Assert.True(result);
+			Assert.Equal(data, File.ReadAllText(unusedFile));
+			File.Delete(unusedFile);
+		}
+
+		[Theory]
+		[InlineData(NON_EXISTENT_PATH_EMPTY)]
+		[InlineData(NON_EXISTENT_PATH_BLANK)]
+		[InlineData(NON_EXISTENT_PATH_INVALID)]
+		[InlineData(NON_EXISTENT_PATH_NULL)]
+		void TryWrite_ReturnsFalse_InvalidFiles(string path)
+		{
+			if (File.Exists(path)) File.Delete(path);
+			var data = InputHelper.GenerateData(100);
+
+			var result = BaseFileWorker.TryWrite(data, path);
+			Assert.False(result);
+		}
+
+		[Fact]
+		void TryWrite_ReturnsTrue_OverwriteExistingFile()
+		{
+			string path = TEMP_FILE_PATH;
+			var data = InputHelper.GenerateData(100);
+			File.WriteAllText(path, "Wrong data");
+			var result = BaseFileWorker.TryWrite(data, path);
+			Assert.True(result);
+			Assert.Equal(data, File.ReadAllText(path));
+			File.Delete(path);
+		}
+
+		[Fact]
+		void Write_WorksCorrect_NewFile()
+		{
+			string path = TEMP_FILE_PATH_OUT;
+			if (File.Exists(path)) File.Delete(path);
+			var data = InputHelper.GenerateData(100);
+			var result = BaseFileWorker.Write(data, path);
+			Assert.True(result);
+			Assert.Equal(data, File.ReadAllText(path));
+			File.Delete(path);
+		}
+
+		[Fact] 
+		void Write_WorksCorrect_ExistingFile()
+		{
+			string path = TEMP_FILE_PATH_OUT;
+			var data = InputHelper.GenerateData(100);
+			File.WriteAllText(path, "Wrong data");
+			var result = BaseFileWorker.Write(data, path);
+			Assert.True(result);
+			Assert.Equal(data, File.ReadAllText(path));
+		}
+
+		[Theory]
+		[InlineData(NON_EXISTENT_PATH_BLANK)]
+		[InlineData(NON_EXISTENT_PATH_EMPTY)]
+		[InlineData(NON_EXISTENT_PATH_INVALID)]
+		[InlineData(NON_EXISTENT_PATH_NULL)]
+		void Write_ReturnsFalse_InvalidFiles(string path)
+		{
+			var data = InputHelper.GenerateData(100);
+			var result = BaseFileWorker.Write(data, path);
+			Assert.False(result);
+		}
+		
+
+
+		[Fact]
 		public void Test_Write_GetFileName_ReadAllText()
 		{
 			var input_content = "test string";
 			BaseFileWorker.Write(input_content, OutputFilePath);
 			var out_fileName = BaseFileWorker.GetFileName(OutputFilePath);
 			var out_contents = File.ReadAllText(OutputFilePath);
+			//BaseFileWorker.
 			Assert.Equal(input_content, out_contents);
 			Assert.Equal(OutputFilePath, out_fileName);
 		}

@@ -5,7 +5,7 @@ using Xunit;
 
 namespace KPI3.BlackBoxTest
 {
-	public class UnitTest1
+	public class BaseFileWorker_TestByOne
 	{
 		const string NON_EXISTENT_PATH_INVALID = "^$:/\\fd:\\fwe/wef\n\t\r\n";
 		const string NON_EXISTENT_PATH_NULL = null;
@@ -171,7 +171,7 @@ namespace KPI3.BlackBoxTest
 		[Fact]
 		public void GetPath_ReturnsDirPath_CurrentDir()
 		{
-			string path = "filename.txt";
+			string path = TEMP_FILE_PATH;
 			File.WriteAllText(path, "");
 			string results = null;
 			string expected = CurrentDirectory;
@@ -224,7 +224,7 @@ namespace KPI3.BlackBoxTest
 		}
 
 		[Fact]
-		void MkDir_ReturnsFalse_PathTooLong()
+		void MkDir_ReturnsNull_PathTooLong()
 		{
 			string result = "";
 			var ex = Record.Exception(() =>
@@ -575,20 +575,6 @@ namespace KPI3.BlackBoxTest
 			var data = InputHelper.GenerateData(100);
 			var result = BaseFileWorker.Write(data, path);
 			Assert.False(result);
-		}
-		
-
-
-		[Fact]
-		public void Test_Write_GetFileName_ReadAllText()
-		{
-			var input_content = "test string";
-			BaseFileWorker.Write(input_content, OutputFilePath);
-			var out_fileName = BaseFileWorker.GetFileName(OutputFilePath);
-			var out_contents = File.ReadAllText(OutputFilePath);
-			//BaseFileWorker.
-			Assert.Equal(input_content, out_contents);
-			Assert.Equal(OutputFilePath, out_fileName);
 		}
 	}
 }
